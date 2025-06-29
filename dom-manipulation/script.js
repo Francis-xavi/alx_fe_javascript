@@ -1,107 +1,59 @@
+// Simulated server interaction and conflict resolution for Dynamic Quote Generator
+
+const serverUrl = 'https://jsonplaceholder.typicode.com/posts'; // Mock endpoint
+let syncInterval = 10000; // 10 seconds for demo
+
+// Start syncing after DOM loads
 document.addEventListener('DOMContentLoaded', () => {
-  const quoteDisplay = document.getElementById('quoteDisplay');
-  const categoryFilter = document.getElementById('categoryFilter');
-  const newQuoteBtn = document.getElementById('newQuote');
+  setInterval(syncWithServer, syncInterval);
+});
 
-  let quotes = JSON.parse(localStorage.getItem('quotes')) || [
-    { text: "Believe in yourself.", category: "Motivation" },
-    { text: "Life is what happens when you're busy making other plans.", category: "Life" },
-  ];
+function syncWithServer() {
+  fetch(serverUrl)
+    .then(response => response.json())
+    .then(serverQuotes => {
+      const localQuotes = JSON.parse(localStorage.getItem('quotes')) || [];
 
-  // Load last filter
-  const savedFilter = localStorage.getItem('selectedCategory');
-  if (savedFilter) {
-    categoryFilter.value = savedFilter;
-  }
+      // Simulate server quote format
+      const simulatedQuotes = serverQuotes.slice(0, 5).map(q => ({
+        text: q.title,
+        category: 'Server'
+      }));
 
-  populateCategories();
-  filterQuotes();
+      let updated = false;
+      simulatedQuotes.forEach(serverQuote => {
+        if (!localQuotes.some(local => local.text === serverQuote.text)) {
+          localQuotes.push(serverQuote);
+          updated = true;
+        }
+      });
 
-  newQuoteBtn.addEventListener('click', () => {
-    const selectedCategory = categoryFilter.value;
-    const filtered = selectedCategory === 'all'
-      ? quotes
-      : quotes.filter(q => q.category === selectedCategory);
-    showRandomQuote(filtered);
-  });
-
-  function showRandomQuote(quoteArray) {
-    if (quoteArray.length === 0) {
-      quoteDisplay.textContent = "No quotes available for this category.";
-      return;
-    }
-    const randomIndex = Math.floor(Math.random() * quoteArray.length);
-    quoteDisplay.textContent = quoteArray[randomIndex].text;
-    sessionStorage.setItem('lastQuote', quoteArray[randomIndex].text);
-  }
-
-  window.addQuote = function () {
-    const text = document.getElementById('newQuoteText').value.trim();
-    const category = document.getElementById('newQuoteCategory').value.trim();
-    if (!text || !category) return alert("Both fields are required.");
-
-    const newQ = { text, category };
-    quotes.push(newQ);
-    saveQuotes();
-    populateCategories();
-    filterQuotes();
-
-    document.getElementById('newQuoteText').value = '';
-    document.getElementById('newQuoteCategory').value = '';
-  };
-
-  function saveQuotes() {
-    localStorage.setItem('quotes', JSON.stringify(quotes));
-  }
-
-  window.filterQuotes = function () {
-    const selected = categoryFilter.value;
-    localStorage.setItem('selectedCategory', selected);
-
-    const filtered = selected === 'all'
-      ? quotes
-      : quotes.filter(q => q.category === selected);
-
-    showRandomQuote(filtered);
-  };
-
-  function populateCategories() {
-    const categories = Array.from(new Set(quotes.map(q => q.category)));
-    categoryFilter.innerHTML = '<option value="all">All Categories</option>';
-    categories.forEach(cat => {
-      const opt = document.createElement('option');
-      opt.value = cat;
-      opt.textContent = cat;
-      categoryFilter.appendChild(opt);
-    });
-
-    const saved = localStorage.getItem('selectedCategory');
-    if (saved) categoryFilter.value = saved;
-  }
-
-  window.importFromJsonFile = function (event) {
-    const fileReader = new FileReader();
-    fileReader.onload = function (e) {
-      try {
-        const imported = JSON.parse(e.target.result);
-        if (!Array.isArray(imported)) throw new Error();
-        quotes.push(...imported);
-        saveQuotes();
+      if (updated) {
+        localStorage.setItem('quotes', JSON.stringify(localQuotes));
         populateCategories();
         filterQuotes();
-        alert('Quotes imported successfully!');
-      } catch {
-        alert('Invalid JSON file.');
+        notifyUser("Quotes updated from server.");
       }
-    };
-    fileReader.readAsText(event.target.files[0]);
-  };
+    })
+    .catch(err => console.error('Sync error:', err));
+}
 
-  window.exportToJson = function () {
-    const blob = new Blob([JSON.stringify(quotes, null, 2)], { type: "application/json" });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = "quotes.json";
-    link.click();
-  };
-});
+function notifyUser(message) {
+  const note = document.createElement('div');
+  note.textContent = message;
+  note.style.background = '#ffeeba';
+  note.style.border = '1px solid #ffc107';
+  note.style.padding = '10px';
+  note.style.margin = '10px';
+  note.style.color = '#856404';
+  note.style.borderRadius = '5px';
+  document.body.insertBefore(note, document.body.firstChild);
+
+  setTimeout(() => note.remove(), 5000);
+}
+
+// Optional: Manual conflict resolution interface (could be expanded)
+window.resolveConflictsManually = function() {
+  alert('Manual conflict resolution not implemented. Server always wins by default.');
+};
+
