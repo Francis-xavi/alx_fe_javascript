@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const quoteDisplay = document.getElementById('quoteDisplay');
     const categoryFilter = document.getElementById('categoryFilter');
     const newQuoteBtn = document.getElementById('newQuote');
+    const notificationArea = document.getElementById('notification'); // Added for updates
 
     let quotes = JSON.parse(localStorage.getItem('quotes')) || [];
     let lastQuote = sessionStorage.getItem('lastQuote') || '';
@@ -124,7 +125,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function syncQuotes() {
         await fetchQuotesFromServer();
-        console.log('Synced quotes from server.');
+        showNotification('Quotes synced with server!');
+        console.log('Quotes synced with server!');
+    }
+
+    function showNotification(message) {
+        if (!notificationArea) return;
+        notificationArea.textContent = message;
+        notificationArea.style.display = 'block';
+        setTimeout(() => {
+            notificationArea.style.display = 'none';
+        }, 3000);
     }
 
     // Event listeners
@@ -137,6 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize
     populateCategories();
     if (lastQuote) quoteDisplay.textContent = lastQuote;
-    syncQuotes(); // Initial sync
-    setInterval(syncQuotes, 60000); // Sync every 60 seconds
+    syncQuotes();
+    setInterval(syncQuotes, 60000); // Periodic sync every 60s
 });
